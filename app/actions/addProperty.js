@@ -4,8 +4,9 @@ import Property from "@/models/Property";
 import { getSessionUser } from "@/utils/getSessionUser";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+// import cloudinary from "@/config/cloudinary";
 
-const addProperty = async (formData) => {
+async function addProperty(formData) {
   await connectDB();
 
   const sessionUser = await getSessionUser();
@@ -16,14 +17,12 @@ const addProperty = async (formData) => {
 
   const { userId } = sessionUser;
 
+  // Access all values for amenities and images
   const amenities = formData.getAll("amenities");
-  const images = formData
-    .getAll("images")
-    .filter((image) => image.name !== "")
-    .map((image) => image.name);
+  const images = formData.getAll("images").filter((image) => image.name !== "");
 
+  // Create the propertyData object with embedded seller_info
   const propertyData = {
-    owner: userId,
     type: formData.get("type"),
     name: formData.get("name"),
     description: formData.get("description"),
@@ -38,17 +37,40 @@ const addProperty = async (formData) => {
     square_feet: formData.get("square_feet"),
     amenities,
     rates: {
-      nightly: formData.get("rates.nightly"),
       weekly: formData.get("rates.weekly"),
       monthly: formData.get("rates.monthly"),
+      nightly: formData.get("rates.nightly."),
     },
     seller_info: {
       name: formData.get("seller_info.name"),
       email: formData.get("seller_info.email"),
       phone: formData.get("seller_info.phone"),
     },
-    images,
+    owner: userId,
   };
+
+  //   const imageUrls = [];
+
+  //   for (const imageFile of images) {
+  //     const imageBuffer = await imageFile.arrayBuffer();
+  //     const imageArray = Array.from(new Uint8Array(imageBuffer));
+  //     const imageData = Buffer.from(imageArray);
+
+  //     // Convert the image data to base64
+  //     const imageBase64 = imageData.toString("base64");
+
+  //     // Make request to upload to Cloudinary
+  //     const result = await cloudinary.uploader.upload(
+  //       `data:image/png;base64,${imageBase64}`,
+  //       {
+  //         folder: "propertypulse",
+  //       }
+  //     );
+
+  //     imageUrls.push(result.secure_url);
+  //   }
+
+  //   propertyData.images = imageUrls;
 
   const newProperty = new Property(propertyData);
   await newProperty.save();
@@ -56,5 +78,6 @@ const addProperty = async (formData) => {
   revalidatePath("/", "layout");
 
   redirect(`/properties/${newProperty._id}`);
-};
+}
+
 export default addProperty;
